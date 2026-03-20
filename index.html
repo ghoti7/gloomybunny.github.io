@@ -2,8 +2,9 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>QR Code Scanner (Back Camera)</title>
+  <title>QR Code Scanner (Back Camera + Flash)</title>
   <script src="https://unpkg.com/html5-qrcode"></script>
+
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -29,23 +30,37 @@
     }
 
     button {
-      margin-top: 15px;
+      margin: 8px;
       padding: 10px 15px;
       font-size: 16px;
       cursor: pointer;
+      border-radius: 8px;
+      border: none;
+      background: #333;
+      color: white;
+    }
+
+    button:hover {
+      background: #555;
     }
   </style>
 </head>
 <body>
 
   <h1>QR Code Scanner</h1>
+
   <div id="reader"></div>
-  <div id="result">Scanning...</div>
-  <button onclick="startScanner()">Start Scanner</button>
-  <button onclick="stopScanner()">Stop Scanner</button>
+  <div id="result">Ready to scan...</div>
+
+  <div>
+    <button onclick="startScanner()">Start</button>
+    <button onclick="stopScanner()">Stop</button>
+    <button onclick="toggleFlash()" id="flashBtn">Flash ON</button>
+  </div>
 
   <script>
     let html5QrCode;
+    let flashOn = false;
     const qrConfig = { fps: 10, qrbox: 250 };
 
     function onScanSuccess(decodedText) {
@@ -53,15 +68,16 @@
     }
 
     function onScanError(errorMessage) {
-      // Ignore frequent scan errors
       console.warn(errorMessage);
     }
 
     function startScanner() {
       html5QrCode = new Html5Qrcode("reader");
+      flashOn = false;
+      updateFlashButton();
 
       html5QrCode.start(
-        { facingMode: "environment" }, // 👈 back camera
+        { facingMode: "environment" },
         qrConfig,
         onScanSuccess,
         onScanError
@@ -74,10 +90,39 @@
       if (html5QrCode) {
         html5QrCode.stop().then(() => {
           document.getElementById("result").innerText = "Scanner stopped.";
+          html5QrCode = null;
         }).catch(err => {
           console.error("Stop failed:", err);
         });
       }
+    }
+
+    function toggleFlash() {
+      if (!html5QrCode) return;
+
+      html5QrCode.getRunningTrackCapabilities()
+        .then(capabilities => {
+          if (!capabilities.torch) {
+            alert("Flashlight not supported on this device");
+            return;
+          }
+
+          return html5QrCode.applyVideoConstraints({
+            advanced: [{ torch: !flashOn }]
+          });
+        })
+        .then(() => {
+          flashOn = !flashOn;
+          updateFlashButton();
+        })
+        .catch(err => {
+          console.error("Torch error:", err);
+        });
+    }
+
+    function updateFlashButton() {
+      const btn = document.getElementById("flashBtn");
+      btn.innerText = flashOn ? "Flash OFF" : "Flash ON";
     }
   </script>
 
