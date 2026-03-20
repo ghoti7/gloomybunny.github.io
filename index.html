@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>QR Code Scanner</title>
+  <title>QR Code Scanner (Back Camera)</title>
   <script src="https://unpkg.com/html5-qrcode"></script>
   <style>
     body {
@@ -11,14 +11,28 @@
       background: #f4f4f4;
       padding: 20px;
     }
-    #reader {
-      width: 300px;
-      margin: auto;
+
+    h1 {
+      margin-bottom: 10px;
     }
+
+    #reader {
+      width: 320px;
+      margin: 20px auto;
+    }
+
     #result {
       margin-top: 20px;
       font-size: 18px;
       color: green;
+      word-break: break-word;
+    }
+
+    button {
+      margin-top: 15px;
+      padding: 10px 15px;
+      font-size: 16px;
+      cursor: pointer;
     }
   </style>
 </head>
@@ -26,25 +40,45 @@
 
   <h1>QR Code Scanner</h1>
   <div id="reader"></div>
-  <div id="result">Scan a QR code...</div>
+  <div id="result">Scanning...</div>
+  <button onclick="startScanner()">Start Scanner</button>
+  <button onclick="stopScanner()">Stop Scanner</button>
 
   <script>
-    function onScanSuccess(decodedText, decodedResult) {
-      document.getElementById('result').innerText = "Scanned: " + decodedText;
-      console.log(`Code matched = ${decodedText}`, decodedResult);
+    let html5QrCode;
+    const qrConfig = { fps: 10, qrbox: 250 };
+
+    function onScanSuccess(decodedText) {
+      document.getElementById("result").innerText = "Scanned: " + decodedText;
     }
 
     function onScanError(errorMessage) {
-      // Optional: handle scan errors (usually ignored)
+      // Ignore frequent scan errors
       console.warn(errorMessage);
     }
 
-    let html5QrcodeScanner = new Html5QrcodeScanner(
-      "reader",
-      { fps: 10, qrbox: 250 }
-    );
+    function startScanner() {
+      html5QrCode = new Html5Qrcode("reader");
 
-    html5QrcodeScanner.render(onScanSuccess, onScanError);
+      html5QrCode.start(
+        { facingMode: "environment" }, // 👈 back camera
+        qrConfig,
+        onScanSuccess,
+        onScanError
+      ).catch(err => {
+        document.getElementById("result").innerText = "Camera error: " + err;
+      });
+    }
+
+    function stopScanner() {
+      if (html5QrCode) {
+        html5QrCode.stop().then(() => {
+          document.getElementById("result").innerText = "Scanner stopped.";
+        }).catch(err => {
+          console.error("Stop failed:", err);
+        });
+      }
+    }
   </script>
 
 </body>
